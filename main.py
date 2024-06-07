@@ -10,6 +10,18 @@ api_hash = os.getenv("API_HASH")
 
 client = TelegramClient('copier', api_id, api_hash)
 
+action_queue = []
+
+"""
+To Do:
+- Add function to place trades
+- Add function to move stop loss
+- Add function to close trades
+- Add these to a queue to be executed in order
+- intergrate NLP model to understand messages better
+- Add function to log trades and actions with date and time
+
+"""
 
 async def main():
     await client.start()
@@ -29,7 +41,9 @@ async def main():
             if "close" in simplified_text or "closing" in simplified_text or "closed" in simplified_text:
                 #function to close trade
                 await client.send_message('me', event.text)
-            
+    
+
+    await client.run_until_disconnected()
 
     
 with client:
