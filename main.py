@@ -1,4 +1,5 @@
 from telethon import TelegramClient, events
+import MetaTrader5 as mt5
 import os
 from dotenv import load_dotenv
 from funcs import *

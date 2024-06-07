@@ -1,4 +1,6 @@
 telethon
-itertools
-os
-dotenv
+python-dotenv
+MetaTrader5
+pandas
+numpy
+matplotlib
