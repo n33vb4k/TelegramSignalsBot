@@ -27,9 +27,10 @@ async def main():
     await client.start()
     print("Client Started and Connected")
 
-    @client.on(events.NewMessage(chats='@Premium members'))
+    @client.on(events.NewMessage(chats=1001268664484))
     async def handler(event):
         text = event.text.lower()
+        print(text)
         if 'buy' in text or 'sell' in text:
             #function to place trades
             await client.send_message('me', event.text)
