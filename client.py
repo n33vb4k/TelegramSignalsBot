@@ -1,12 +1,12 @@
 from telethon import TelegramClient, events
 import MetaTrader5 as mt5
 import os
+import itertools
 from dotenv import load_dotenv
-from funcs import *
 
 load_dotenv()
 
-api_id = int(os.getenv("API_ID"))
+api_id   = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 
 client = TelegramClient('copier', api_id, api_hash)
@@ -50,3 +50,8 @@ async def main():
     
 with client:
     client.loop.run_until_complete(main())
+
+def message_simplify(text):
+    return ''.join(
+        ch for ch, _ in itertools.groupby(text)
+    )
