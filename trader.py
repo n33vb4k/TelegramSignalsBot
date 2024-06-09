@@ -1,18 +1,7 @@
 import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime
-import os
-from dotenv import load_dotenv
-
-# load_dotenv()
-
-# login    = os.getenv("mt5_login")
-# password = os.getenv("mt5_password")
-
-# print(login, password)
-
-# print(mt5.initialize())
-# print(mt5.login(int(login), password ,server="MetaQuotes-Demo"))
+import itertools
 
 
 def place_buy(symbol, volume, sl, *tps):
@@ -92,3 +81,38 @@ def close_trade(ticket):
     return True
     
 
+def message_simplify(text):
+    return ''.join(
+        ch for ch, _ in itertools.groupby(text)
+    )
+
+def process_trading_signal(message_text):
+    lines = message_text.split('\n')
+    action = None
+    symbol = None
+    entry_price = None
+    sl = None
+    tps = []
+
+    for line in lines:
+        if 'sell' in line or 'buy' in line:
+            parts = line.split()
+            if len(parts) >= 3:
+                symbol = parts[0].upper()
+                action = parts[1].upper()
+                entry_price_range = parts[2].split('-')
+                if len(entry_price_range) == 2:
+                    entry_price = (float(entry_price_range[0]) + float(entry_price_range[1])) / 2
+                else:
+                    entry_price = float(entry_price_range[0])
+        elif 'sl' in line:
+            parts = line.split()
+            sl = float(parts[1])
+        elif 'tp' in line:
+            parts = line.split()
+            try:
+                tps.append(float(parts[1]))
+            except ValueError:
+                continue
+
+    return action, symbol, entry_price, sl, tps
