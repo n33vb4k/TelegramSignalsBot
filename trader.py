@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import itertools
 import os
+import re
 
 def initialise_mt5():
     if not mt5.initialize():
@@ -14,6 +15,10 @@ def initialise_mt5():
         print("Failed to login")
         return
     print("Logged in to MT5")
+
+
+def get_current_price(symbol, action):
+    return mt5.symbol_info_tick(symbol).ask if action == "BUY" else mt5.symbol_info_tick(symbol).bid
 
 
 def place_buy(symbol, volume, sl, tps):
@@ -34,8 +39,6 @@ def place_buy(symbol, volume, sl, tps):
         }
 
         result = mt5.order_send(request)
-
-        print("api returned:",result)
 
         if result is None:
             print(mt5.last_error())
@@ -69,8 +72,6 @@ def place_sell(symbol, volume, sl, tps):
         }
 
         result = mt5.order_send(request)
-
-        print("api returned:",result)
 
         if result is None:
             print(mt5.last_error())
@@ -129,21 +130,25 @@ def process_trading_signal(message_text):
     lines = message_text.split('\n')
     action = None
     symbol = None
-    entry_price = None
+    price_range = None
     sl = None
     tps = []
 
     for line in lines:
+        line.strip()
         if 'sell' in line or 'buy' in line:
             parts = line.split()
             if len(parts) >= 3:
                 symbol = parts[0].upper()
                 action = parts[1].upper()
                 entry_price_range = parts[2].split('-')
+                entry_price_range = re.split(r'[-/]', parts[2])
                 if len(entry_price_range) == 2:
-                    entry_price = (float(entry_price_range[0]) + float(entry_price_range[1])) / 2
+                    if len(entry_price_range[0]) != len(entry_price_range[1]):
+                        entry_price_range[1] = float(entry_price_range[1]) + float((entry_price_range[0][:2]))*1000
+                    price_range =[float(entry_price_range[0]),float(entry_price_range[1])]
                 else:
-                    entry_price = float(entry_price_range[0])
+                    price_range = [float(entry_price_range[0])-0.1, float(entry_price_range[0])+0.1]
         elif 'sl' in line:
             parts = line.split()
             sl = float(parts[1])
@@ -154,4 +159,4 @@ def process_trading_signal(message_text):
             except ValueError:
                 continue
 
-    return action, symbol, entry_price, sl, tps
+    return action, symbol, price_range, sl, tps

@@ -1,7 +1,6 @@
 from telethon import TelegramClient, events
-import MetaTrader5 as mt5
+import asyncio
 import os
-import itertools
 from dotenv import load_dotenv
 from trader import *
 
@@ -17,16 +16,32 @@ action_queue = []
 """
 To Do:
 - Add orders to a queue to be executed in order
-- Only execute by/sell orders if it is +/- 10 pips from entry price
+- Only execute by/sell orders if it is +/- 10 pips from entry price or within range
 - Add function to read move sl messages and close trade messages
 - Add function to log trades and actions with date and time
-- Sort out retcode issue
-- Sort out signal processing
 
 """
 
 premium_members = 1001268664484
 testing_group = 4255421846
+
+
+async def manage_queue():
+    while True:
+        if action_queue:
+            action, symbol, price_range, sl, tps = action_queue[0]
+            if action == "BUY":
+                if get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]:
+                    place_buy(symbol, 0.1, sl, tps)
+                    action_queue.pop(0)
+                    await client.send_message('me', f"Action: {action}, Symbol: {symbol}, Entry Price: {get_current_price(symbol, action)}, SL: {sl}, TPs: {tps}, status: placed")
+            elif action == "SELL":
+                if get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]:
+                    place_sell(symbol, 0.1, sl, tps)
+                    action_queue.pop(0)
+                    await client.send_message('me', f"Action: {action}, Symbol: {symbol}, Entry Price: {get_current_price(symbol, action)}, SL: {sl}, TPs: {tps}, status: placed")
+        await asyncio.sleep(1)
+       
 
 async def main():
     # Start client
@@ -34,21 +49,19 @@ async def main():
     print("Client Started and Connected")
     initialise_mt5()
 
+    # Start queue manager
+    asyncio.create_task(manage_queue())
+
     # Event handler for new messages
     @client.on(events.NewMessage(chats=testing_group))
     async def handler(event):
         text = event.text.lower()
-        print(text)
+        # print(text)
         if 'buy' in text or 'sell' in text:
-            action, symbol, entry_price, sl, tps = process_trading_signal(text)
-            if action and symbol and entry_price and sl:
-                print(f"Action: {action}, Symbol: {symbol}, Entry Price: {entry_price}, SL: {sl}, TPs: {tps}")
-                if action == "BUY":
-                    place_buy(symbol, entry_price, 0.1, sl, tps)
-                elif action == "SELL":
-                    place_sell(symbol, entry_price, 0.1, sl, tps)
-
-                await client.send_message('me', f"Action: {action}, Symbol: {symbol}, Entry Price: {entry_price}, SL: {sl}, TPs: {tps}, status: placed")
+            action, symbol, price_range, sl, tps = process_trading_signal(text)
+            if action and symbol and price_range and sl:
+                print(f"Action: {action}, Symbol: {symbol}, Price Range: {price_range}, SL: {sl}, TPs: {tps}")
+                action_queue.append((action, symbol, price_range, sl, tps))
 
         elif "stoploss" and "entry" in text or "sl" and "entry" in text:
             #function to move sl to entry
