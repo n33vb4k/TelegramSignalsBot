@@ -2,31 +2,56 @@ import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime
 import itertools
+import os
+
+def initialise_mt5():
+    if not mt5.initialize():
+        print("Failed to initialize")
+        return
+    print("MT5 Initialized")
+
+    if not mt5.login(int(os.getenv("mt5_login")), os.getenv("mt5_password"), server="MetaQuotes-Demo"):
+        print("Failed to login")
+        return
+    print("Logged in to MT5")
 
 
-def place_buy(symbol, volume, sl, *tps):
+def place_buy(symbol, volume, sl, tps):
     for tp in tps:
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": volume,
-            "type": mt5.ORDER_TYPE_BUY,
+            "type": mt5.ORDER_TYPE_SELL,
             "price": mt5.symbol_info_tick(symbol).ask,
             "sl": sl,
             "tp": tp,
+            "deviation": 20,
+            "magic": 234000,
+            "comment": "python script", 
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC
+            "type_filling": mt5.ORDER_FILLING_IOC,
         }
+
         result = mt5.order_send(request)
-        print(result)
+
+        print("api returned:",result)
+
+        if result is None:
+            print(mt5.last_error())
+            return False
+        
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("Order send failed")
             print(result.comment)
             return False
+        
+        print(f"{symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} placed")
+
     return True
 
 
-def place_sell(symbol, volume, sl, *tps):
+def place_sell(symbol, volume, sl, tps):
     for tp in tps:
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -36,16 +61,29 @@ def place_sell(symbol, volume, sl, *tps):
             "price": mt5.symbol_info_tick(symbol).bid,
             "sl": sl,
             "tp": tp,
+            "deviation": 20,
+            "magic": 234000,
+            "comment": "python script", 
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC
+            "type_filling": mt5.ORDER_FILLING_IOC,
         }
+
         result = mt5.order_send(request)
-        print(result)
+
+        print("api returned:",result)
+
+        if result is None:
+            print(mt5.last_error())
+            return False
+        
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("Order send failed")
             print(result.comment)
             return False
+        
+        print(f"{symbol} {volume} lots at {mt5.symbol_info_tick(symbol).bid} placed")
     return True
+
 
 def move_sl(new_sl, ticket):
     request = {
@@ -85,6 +123,7 @@ def message_simplify(text):
     return ''.join(
         ch for ch, _ in itertools.groupby(text)
     )
+
 
 def process_trading_signal(message_text):
     lines = message_text.split('\n')
