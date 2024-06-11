@@ -22,6 +22,7 @@ def get_current_price(symbol, action):
 
 
 def place_buy(symbol, volume, sl, tps):
+    tickets = []
     for tp in tps:
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -49,12 +50,14 @@ def place_buy(symbol, volume, sl, tps):
             print(result.comment)
             return False
         
-        print(f"{symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} placed")
+        print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} placed. ticket: {result.order}")
+        tickets.append(result.order)
 
-    return True
+    return tickets
 
 
 def place_sell(symbol, volume, sl, tps):
+    tickets = []
     for tp in tps:
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -82,8 +85,10 @@ def place_sell(symbol, volume, sl, tps):
             print(result.comment)
             return False
         
-        print(f"{symbol} {volume} lots at {mt5.symbol_info_tick(symbol).bid} placed")
-    return True
+        print(f"SELL {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).bid} tp: {tp} PLACED. ticket: {result.order}")
+        tickets.append(result.order)
+
+    return tickets
 
 
 def move_sl(new_sl, ticket):
@@ -159,7 +164,7 @@ def process_trading_signal(message_text):
                 tps.append(float(parts[1]))
             except ValueError:
                 continue
-    print(action, symbol, price_range, sl, tps)
+    
     return action, symbol, price_range, sl, tps
 
 
@@ -171,8 +176,13 @@ def get_price_range(entry_price_range, symbol, action):
         # if formatted like 2010-2011
         price_range = [float(entry_price_range[0]),float(entry_price_range[1])]
     elif entry_price_range == "NOW":
-        price_range = [get_current_price(symbol, action), get_current_price(symbol, action)]
+        price_range = [get_current_price(symbol, action)-0.1, get_current_price(symbol, action)+0.1]
     else:
         price_range = [float(entry_price_range[0])-0.1, float(entry_price_range[0])+0.1]
 
     return price_range
+
+
+def get_open_positions():
+    positions = mt5.positions_get()
+    return [position.ticket for position in positions]
