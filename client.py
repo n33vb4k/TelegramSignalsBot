@@ -53,7 +53,7 @@ async def main():
     @client.on(events.NewMessage(chats=testing_group))
     async def handler(event):
         text = event.text.lower()
-        # print(text)
+        
         if 'buy' in text or 'sell' in text:
             action, symbol, price_range, sl, tps = process_trading_signal(text)
             if action and symbol and price_range and sl:
@@ -65,11 +65,13 @@ async def main():
             if action_history:
                 tickets = action_history[-1]
                 for ticket in tickets:
-                    position = mt5.positions_get(ticket)
-                    move_sl(position.price_open, ticket)
-                    message = f"SL moved to entry for {position.symbol} {position.volume} lots at {position.price_open} tp: {position.tp}"
-                    print(message)
-                    await client.send_message('me',  message)
+                    position = mt5.positions_get(ticket=ticket)
+                    success = move_sl(position[0], position[0].price_open, ticket)
+                    message = f"SL moved to entry for {position[0].symbol} {position[0].volume} lots at {position[0].price_open} tp: {position[0].tp}"
+                    if success:
+                        print(message)
+                        await client.send_message('me',  message)
+                        
         else:
             simplified_text = message_simplify(text)
             if "close" in simplified_text or "closing" in simplified_text or "im out" in simplified_text:

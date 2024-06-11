@@ -91,20 +91,26 @@ def place_sell(symbol, volume, sl, tps):
     return tickets
 
 
-def move_sl(new_sl, ticket):
+def move_sl(position, new_sl, ticket):
     request = {
         "action": mt5.TRADE_ACTION_SLTP,
-        "symbol": mt5.positions_get(ticket).symbol,
+        "symbol": position.symbol,
         "sl": new_sl,
-        "tp": mt5.positions_get(ticket).tp,
+        "tp": position.tp,
         "position": ticket,
     }
     result = mt5.order_send(request)
     print(result)
+
+    if result is None:
+        print(mt5.last_error())
+        return False
+    
     if result.retcode != mt5.TRADE_RETCODE_DONE:
         print("Order send failed")
         print(result.comment)
         return False
+    
     return True
     
 
