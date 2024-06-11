@@ -135,22 +135,23 @@ def process_trading_signal(message_text):
     tps = []
 
     for line in lines:
-        line.strip()
+        line = line.strip()
         if 'sell' in line or 'buy' in line:
             parts = line.split()
             if len(parts) >= 3:
                 symbol = parts[0].upper()
                 action = parts[1].upper()
-                entry_price_range = parts[2].split('-')
                 entry_price_range = re.split(r'[-/]', parts[2])
-                if len(entry_price_range) == 2:
-                    if len(entry_price_range[0]) != len(entry_price_range[1]):
-                        entry_price_range[1] = float(entry_price_range[1]) + float((entry_price_range[0][:2]))*1000
-                    price_range =[float(entry_price_range[0]),float(entry_price_range[1])]
-                else:
-                    price_range = [float(entry_price_range[0])-0.1, float(entry_price_range[0])+0.1]
-        elif 'sl' in line:
+                price_range = get_price_range(entry_price_range, symbol, action)
+            elif len(parts) == 2:
+                symbol = parts[0].upper()
+                action = parts[1].upper()
+        elif "enter" in line or "entry" in line:
             parts = line.split()
+            entry_price_range = re.split(r'[-/]', parts[1])
+            price_range = get_price_range(entry_price_range, symbol, action)
+        elif 'sl' in line:
+            parts = re.split(r'[-/() ]', line)
             sl = float(parts[1])
         elif 'tp' in line:
             parts = line.split()
@@ -158,5 +159,20 @@ def process_trading_signal(message_text):
                 tps.append(float(parts[1]))
             except ValueError:
                 continue
-
+    print(action, symbol, price_range, sl, tps)
     return action, symbol, price_range, sl, tps
+
+
+def get_price_range(entry_price_range, symbol, action):
+    if len(entry_price_range) == 2:
+        if len(entry_price_range[0]) != len(entry_price_range[1]):
+            #if formatted like 2010/11
+            entry_price_range[1] = float(entry_price_range[1]) + float((entry_price_range[0][:2]))*1000
+        # if formatted like 2010-2011
+        price_range = [float(entry_price_range[0]),float(entry_price_range[1])]
+    elif entry_price_range == "NOW":
+        price_range = [get_current_price(symbol, action), get_current_price(symbol, action)]
+    else:
+        price_range = [float(entry_price_range[0])-0.1, float(entry_price_range[0])+0.1]
+
+    return price_range
