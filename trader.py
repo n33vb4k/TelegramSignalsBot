@@ -50,7 +50,7 @@ def place_buy(symbol, volume, sl, tps):
             print(result.comment)
             return False
         
-        print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} placed. ticket: {result.order}")
+        print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} PLACED. ticket: {result.order}")
         tickets.append(result.order)
 
     return tickets
@@ -100,7 +100,6 @@ def move_sl(position, new_sl, ticket):
         "position": ticket,
     }
     result = mt5.order_send(request)
-    print(result)
 
     if result is None:
         print(mt5.last_error())
@@ -111,23 +110,35 @@ def move_sl(position, new_sl, ticket):
         print(result.comment)
         return False
     
+    print (f"SL moved to {new_sl} for {position.symbol} {position.volume} lots at {position.price_open} tp: {position.tp}")
     return True
     
 
-def close_trade(ticket):
+def close_trade(position, ticket):
+    order_type = None
+    price = None
+    order_type = mt5.ORDER_TYPE_BUY if position.type ==1 else mt5.ORDER_TYPE_SELL
+    price = mt5.symbol_info_tick(position.symbol).ask if position.type == 1 else mt5.symbol_info_tick(position.symbol).bid
     request = {
         "action": mt5.TRADE_ACTION_DEAL,
-        "symbol": mt5.positions_get(ticket).symbol,
-        "volume": mt5.positions_get(ticket).volume,
-        "type": mt5.ORDER_TYPE_CLOSE_BY,
+        "symbol": position.symbol,
+        "volume": position.volume,
+        "price": price,
+        "type": order_type,
         "position": ticket,
     }
     result = mt5.order_send(request)
-    print(result)
+    
+    if result is None:
+        print(mt5.last_error())
+        return False
+    
     if result.retcode != mt5.TRADE_RETCODE_DONE:
         print("Order send failed")
         print(result.comment)
         return False
+    
+    print(f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
     return True
     
 

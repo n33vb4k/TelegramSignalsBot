@@ -16,7 +16,7 @@ action_history = []
 
 """
 To Do:
-- Add function to read move sl messages and close trade messages
+- Add function to close trade messages
 - Add function to log trades and actions with date and time
 
 """
@@ -59,7 +59,6 @@ async def main():
             if action and symbol and price_range and sl:
                 print(f"Action: {action}, Symbol: {symbol}, Price Range: {price_range}, SL: {sl}, TPs: {tps}, Status: QUEUED")
                 action_stack.append((action, symbol, price_range, sl, tps))
-
         elif ("stoploss" and "entry" in text) or ("sl" and "entry" in text) or ("stoploss" and "breakeven" in text) or ("sl" and "breakeven" in text):
             #function to move sl to entry
             if action_history:
@@ -67,17 +66,19 @@ async def main():
                 for ticket in tickets:
                     position = mt5.positions_get(ticket=ticket)
                     success = move_sl(position[0], position[0].price_open, ticket)
-                    message = f"SL moved to entry for {position[0].symbol} {position[0].volume} lots at {position[0].price_open} tp: {position[0].tp}"
                     if success:
-                        print(message)
-                        await client.send_message('me',  message)
-                        
+                        await client.send_message('me',  f"SL moved to entry for {position[0].symbol} {position[0].volume} lots at {position[0].price_open} tp: {position[0].tp}")
         else:
             simplified_text = message_simplify(text)
-            if "close" in simplified_text or "closing" in simplified_text or "im out" in simplified_text:
-                #function to close trade
-                await client.send_message('me', event.text)
-    
+            if "close now" in simplified_text or "closing now" in simplified_text or "closed all" in simplified_text or "im out" in simplified_text:
+                if action_history:
+                    tickets = action_history[-1]
+                    for ticket in tickets:
+                        position = mt5.positions_get(ticket=ticket)[0]
+                        success = close_trade(position, ticket)
+                        if success:
+                            await client.send_message('me', f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
+            
 
     await client.run_until_disconnected()
 
