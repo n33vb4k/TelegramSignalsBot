@@ -28,7 +28,7 @@ def place_buy(symbol, volume, sl, tps):
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": volume,
-            "type": mt5.ORDER_TYPE_SELL,
+            "type": mt5.ORDER_TYPE_BUY,
             "price": mt5.symbol_info_tick(symbol).ask,
             "sl": sl,
             "tp": tp,
@@ -48,6 +48,7 @@ def place_buy(symbol, volume, sl, tps):
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("Order send failed")
             print(result.comment)
+            print(mt5.last_error())
             return False
         
         print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} PLACED. ticket: {result.order}")
@@ -170,8 +171,11 @@ def process_trading_signal(message_text):
                 action = parts[1].upper()
         elif "enter" in line or "entry" in line:
             parts = line.split()
-            entry_price_range = re.split(r'[-/]', parts[1])
-            price_range = get_price_range(entry_price_range, symbol, action)
+            try:
+                entry_price_range = re.split(r'[-/]', parts[1])
+                price_range = get_price_range(entry_price_range, symbol, action)
+            except ValueError:
+                continue
         elif 'sl' in line:
             parts = re.split(r'[-/() ]', line)
             sl = float(parts[1])
@@ -189,7 +193,7 @@ def get_price_range(entry_price_range, symbol, action):
     if len(entry_price_range) == 2:
         if len(entry_price_range[0]) != len(entry_price_range[1]):
             #if formatted like 2010/11
-            entry_price_range[1] = float(entry_price_range[1]) + float((entry_price_range[0][:2]))*1000
+            entry_price_range[1] = float(entry_price_range[1]) + float((entry_price_range[0][:2]))*100
         # if formatted like 2010-2011
         price_range = [float(entry_price_range[0]),float(entry_price_range[1])]
     elif entry_price_range == "NOW":
