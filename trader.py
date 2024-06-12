@@ -22,6 +22,8 @@ def get_current_price(symbol, action):
 
 
 def place_buy(symbol, volume, sl, tps):
+    if not tps:
+        return no_tp_request(symbol, volume, sl, "BUY")
     tickets = []
     for tp in tps:
         request = {
@@ -57,7 +59,37 @@ def place_buy(symbol, volume, sl, tps):
     return tickets
 
 
+def no_tp_request(symbol, volume, sl, action):
+    tickets = []
+    request = {
+        "action": mt5.TRADE_ACTION_DEAL,
+        "symbol": symbol,
+        "volume": volume,
+        "type": mt5.ORDER_TYPE_BUY if action == "BUY" else mt5.ORDER_TYPE_SELL,
+        "price": mt5.symbol_info_tick(symbol).ask if action == "BUY" else mt5.symbol_info_tick(symbol).bid,
+        "sl": sl,
+        "deviation": 20,
+        "magic": 234000,
+        "comment": "python script",
+        "type_time": mt5.ORDER_TIME_GTC,
+        "type_filling": mt5.ORDER_FILLING_IOC,
+    }
+    result = mt5.order_send(request)
+    if result is None:
+        print(mt5.last_error())
+        return False
+    if result.retcode != mt5.TRADE_RETCODE_DONE:
+        print("Order send failed")
+        print(result.comment)
+        return False
+    print(f"{action} {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask if action == 'BUY' else mt5.symbol_info_tick(symbol).bid} SL: {sl} PLACED. ticket: {result.order}")
+    tickets.append(result.order)
+    return tickets
+
+
 def place_sell(symbol, volume, sl, tps):
+    if not tps:
+        return no_tp_request(symbol, volume, sl, "SELL")
     tickets = []
     for tp in tps:
         request = {
@@ -164,7 +196,11 @@ def process_trading_signal(message_text):
             if len(parts) >= 3:
                 symbol = parts[0].upper()
                 action = parts[1].upper()
-                entry_price_range = re.split(r'[-/]', parts[2])
+                temp = ""
+                for part in parts[2:]:
+                    temp += part
+                temp.replace(" ", "")
+                entry_price_range = re.split(r'[-/]', temp)
                 price_range = get_price_range(entry_price_range, symbol, action)
             elif len(parts) == 2:
                 symbol = parts[0].upper()
