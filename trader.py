@@ -53,7 +53,7 @@ def place_buy(symbol, volume, sl, tps):
             print(mt5.last_error())
             return False
         
-        print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} PLACED. ticket: {result.order}")
+        print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} PLACED. ticket: {result.order} time: {datetime.now()}")
         tickets.append(result.order)
 
     return tickets
@@ -82,7 +82,7 @@ def no_tp_request(symbol, volume, sl, action):
         print("Order send failed")
         print(result.comment)
         return False
-    print(f"{action} {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask if action == 'BUY' else mt5.symbol_info_tick(symbol).bid} SL: {sl} PLACED. ticket: {result.order}")
+    print(f"{action} {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask if action == 'BUY' else mt5.symbol_info_tick(symbol).bid} SL: {sl} PLACED. ticket: {result.order} time {datetime.now()}")
     tickets.append(result.order)
     return tickets
 
@@ -118,7 +118,7 @@ def place_sell(symbol, volume, sl, tps):
             print(result.comment)
             return False
         
-        print(f"SELL {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).bid} tp: {tp} PLACED. ticket: {result.order}")
+        print(f"SELL {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).bid} tp: {tp} PLACED. ticket: {result.order} time: {datetime.now()}")
         tickets.append(result.order)
 
     return tickets
@@ -143,7 +143,7 @@ def move_sl(position, new_sl, ticket):
         print(result.comment)
         return False
     
-    print (f"SL moved to {new_sl} for {position.symbol} {position.volume} lots at {position.price_open} tp: {position.tp}")
+    print (f"SL moved to {new_sl} for {position.symbol} {position.volume} lots at {position.price_open} tp: {position.tp} time: {datetime.now()}")
     return True
     
 
@@ -171,7 +171,7 @@ def close_trade(position, ticket):
         print(result.comment)
         return False
     
-    print(f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
+    print(f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit. time {datetime.now()}")
     return True
     
 
