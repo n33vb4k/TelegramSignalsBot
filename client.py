@@ -17,14 +17,13 @@ action_history = []
 
 """
 To Do:
-- Add functon to check if message has been edited, if it has then remove the trade just placed in the queue or close if placed on mt5 and add the new one
 - Add function to log trades and actions with date and time
 
 """
 
 premium_members = 1001268664484
 testing_group = 4255421846
-chat = testing_group
+chat = premium_members
 lots = 0.1 
 
 # results.order = position.ticket
@@ -34,14 +33,15 @@ async def manage_stack():
         if action_stack:
             action, symbol, price_range, sl, tps, time = action_stack[-1]
             if (action == "BUY" or action == "SELL") and ((datetime.now() - time) < timedelta(minutes=5)): #only place trade if it is within 5 minutes of being queued
-                if get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]:
+                if (get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]) or (get_current_price(symbol, action) <= price_range[0] and get_current_price(symbol, action) >= price_range[1]):
                     result = place_buy(symbol, lots, sl, tps) if action == "BUY" else place_sell(symbol, lots, sl, tps)
                     if result != False:
                         action_history.append(result)
                     action_stack.pop(-1)
                     await client.send_message('me', f"Action: {action}\nSymbol: {symbol}\nEntry Price: {get_current_price(symbol, action)}\nSL: {sl}\nTPs: {tps}\nStatus: PLACED at time {datetime.now()}")
             else:
-                print(f"Action: {action}\nSymbol: {symbol}\nEntry Price: {get_current_price(symbol, action)}\nSL: {sl}\nTPs: {tps}\nStatus: TIMED OUT at time {datetime.now()}")
+                print(f"Action: {action} Symbol: {symbol} Entry Price: {get_current_price(symbol, action)} SL: {sl} TPs: {tps}, Status: TIMED OUT at time {datetime.now()}")
+                await client.send_message('me', f"Action: {action}\nSymbol: {symbol}\nEntry Price: {get_current_price(symbol, action)}\nSL: {sl}\nTPs: {tps}\nStatus: TIMED OUT at time {datetime.now()}")
                 action_stack.pop(-1)
     
         await asyncio.sleep(1)
