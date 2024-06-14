@@ -50,7 +50,6 @@ def place_buy(symbol, volume, sl, tps):
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("Order send failed")
             print(result.comment)
-            print(mt5.last_error())
             return False
         
         print(f"BUY {symbol} {volume} lots at {mt5.symbol_info_tick(symbol).ask} tp: {tp} PLACED. ticket: {result.order} time: {datetime.now()}")

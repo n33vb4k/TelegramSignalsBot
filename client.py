@@ -24,6 +24,7 @@ To Do:
 
 premium_members = 1001268664484
 testing_group = 4255421846
+chat = testing_group
 lots = 0.1 
 
 # results.order = position.ticket
@@ -36,7 +37,7 @@ async def manage_stack():
                 if get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]:
                     result = place_buy(symbol, lots, sl, tps) if action == "BUY" else place_sell(symbol, lots, sl, tps)
                     if result != False:
-                        action_history.append([result])
+                        action_history.append(result)
                     action_stack.pop(-1)
                     await client.send_message('me', f"Action: {action}\nSymbol: {symbol}\nEntry Price: {get_current_price(symbol, action)}\nSL: {sl}\nTPs: {tps}\nStatus: PLACED at time {datetime.now()}")
             else:
@@ -56,7 +57,7 @@ async def main():
     asyncio.create_task(manage_stack())
 
     # Event handler for new messages
-    @client.on(events.NewMessage(chats=premium_members))
+    @client.on(events.NewMessage(chats=chat))
     async def handler(event):
         text = event.text.lower()
         
@@ -65,7 +66,6 @@ async def main():
                 action, symbol, price_range, sl, tps = process_trading_signal(text)
             except ValueError:
                 action, symbol, price_range, sl, tps = None, None, None, None, None
-
             if action and symbol and price_range and sl:
                 print(f"Action: {action}, Symbol: {symbol}, Price Range: {price_range}, SL: {sl}, TPs: {tps}, Status: QUEUED at time {datetime.now()}")
                 action_stack.append((action, symbol, price_range, sl, tps, datetime.now()))
@@ -74,9 +74,8 @@ async def main():
             if action_history:
                 tickets = action_history[-1]
                 for ticket in tickets:
-                    position = mt5.positions_get(ticket=ticket)
-                    print(position)
-                    success = move_sl(position[0], position[0].price_open, ticket)
+                    position = mt5.positions_get(ticket=ticket)[0]
+                    success = move_sl(position, position.price_open, ticket)
                     if success:
                         await client.send_message('me',  f"SL moved to entry for {position[0].symbol} {position[0].volume} lots at {position[0].price_open} tp: {position[0].tp}")
         else:
@@ -86,11 +85,23 @@ async def main():
                     tickets = action_history[-1]
                     for ticket in tickets:
                         position = mt5.positions_get(ticket=ticket)[0]
-                        print(position)
                         success = close_trade(position, ticket)
                         if success:
                             await client.send_message('me', f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
             
+    # Event handler for edited messages
+    @client.on(events.MessageEdited(chats=chat))
+    async def updater_handler(event):
+        if action_stack:
+            action_stack.pop(-1)
+        elif action_history:
+            tickets = action_history[-1]
+            for ticket in tickets:
+                position = mt5.positions_get(ticket=ticket)[0]
+                success = close_trade(position, ticket)
+                if success:
+                    await client.send_message('me', f"Trade CLOSED due to EDIT for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
+        await handler(event)
 
     await client.run_until_disconnected()
 
