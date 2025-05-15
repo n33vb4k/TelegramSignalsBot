@@ -18,7 +18,7 @@ async def main():
     # Start client
     await client.start()
     print("Client Started and Connected")
-    initialise_mt5()
+    initialise_mt5(False)
     
     # Event handler for new messages
     @client.on(events.NewMessage(chats=testing_group))

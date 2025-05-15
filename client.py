@@ -15,6 +15,8 @@ client = TelegramClient('copier', api_id, api_hash)
 action_stack = []
 action_history = []
 
+live = False #change to false when testing
+
 """
 To Do:
 - Add function to log trades and actions with date and time
@@ -23,8 +25,8 @@ To Do:
 
 premium_members = 1001268664484
 testing_group = 4255421846
-chat = premium_members
-lots = 0.1 
+CHAT = testing_group
+lots = 0.08
 
 # results.order = position.ticket
 
@@ -32,7 +34,7 @@ async def manage_stack():
     while True:
         if action_stack:
             action, symbol, price_range, sl, tps, time = action_stack[-1]
-            if (action == "BUY" or action == "SELL") and ((datetime.now() - time) < timedelta(minutes=5)): #only place trade if it is within 5 minutes of being queued
+            if (action == "BUY" or action == "SELL") and ((datetime.now() - time) < timedelta(minutes=15)): #only place trade if it is within 15 minutes of being queued
                 if (get_current_price(symbol, action) >= price_range[0] and get_current_price(symbol, action) <= price_range[1]) or (get_current_price(symbol, action) <= price_range[0] and get_current_price(symbol, action) >= price_range[1]):
                     result = place_buy(symbol, lots, sl, tps) if action == "BUY" else place_sell(symbol, lots, sl, tps)
                     if result != False:
@@ -51,14 +53,15 @@ async def main():
     # Start client
     await client.start()
     print("Client Started and Connected")
-    initialise_mt5()
+    initialise_mt5(live)
 
     # Start queue manager
     asyncio.create_task(manage_stack())
 
     # Event handler for new messages
-    @client.on(events.NewMessage(chats=chat))
+    @client.on(events.NewMessage(chats=CHAT))
     async def handler(event):
+        print(event.text)
         text = event.text.lower()
         
         if 'buy' in text or 'sell' in text:
@@ -69,7 +72,7 @@ async def main():
             if action and symbol and price_range and sl:
                 print(f"Action: {action}, Symbol: {symbol}, Price Range: {price_range}, SL: {sl}, TPs: {tps}, Status: QUEUED at time {datetime.now()}")
                 action_stack.append((action, symbol, price_range, sl, tps, datetime.now()))
-        elif ("stoploss" and "entry" in text) or ("sl" and "entry" in text) or ("stoploss" and "breakeven" in text) or ("sl" and "breakeven" in text):
+        elif ("stoploss" and "entry" in text) or ("sl" and "entry" in text) or ("stoploss" and "breakeven" in text) or ("sl" and "breakeven" in text) or ("stop loss" and "entry" in text) or ("stop loss" and "breakeven" in text):
             #function to move sl to entry
             if action_history:
                 tickets = action_history[-1]
@@ -90,18 +93,18 @@ async def main():
                             await client.send_message('me', f"Trade closed for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
             
     # Event handler for edited messages
-    @client.on(events.MessageEdited(chats=chat))
-    async def updater_handler(event):
-        if action_stack:
-            action_stack.pop(-1)
-        elif action_history:
-            tickets = action_history[-1]
-            for ticket in tickets:
-                position = mt5.positions_get(ticket=ticket)[0]
-                success = close_trade(position, ticket)
-                if success:
-                    await client.send_message('me', f"Trade CLOSED due to EDIT for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
-        await handler(event)
+    # @client.on(events.MessageEdited(chats=chat))
+    # async def updater_handler(event):
+    #     if action_stack:
+    #         action_stack.pop(-1)
+    #     elif action_history:
+    #         tickets = action_history[-1]
+    #         for ticket in tickets:
+    #             position = mt5.positions_get(ticket=ticket)[0]
+    #             success = close_trade(position, ticket)
+    #             if success:
+    #                 await client.send_message('me', f"Trade CLOSED due to EDIT for {position.symbol} {position.volume} lots at {position.price_open} with {position.profit} profit")
+    #     await handler(event)
 
     await client.run_until_disconnected()
 

@@ -5,15 +5,21 @@ import itertools
 import os
 import re
 
-def initialise_mt5():
+def initialise_mt5(live):
     if not mt5.initialize():
         print("Failed to initialize")
         return
     print("MT5 Initialized")
-
-    if not mt5.login(int(os.getenv("mt5_login")), os.getenv("mt5_password"), server="MetaQuotes-Demo"):
-        print("Failed to login")
-        return
+    if live:
+        if not mt5.login(int(os.getenv("live_login")), os.getenv("live_password"), server=os.getenv("live_server")):
+            print("Failed to login")
+            return
+    else:
+        if not mt5.login(int(os.getenv("mt5_login")), os.getenv("mt5_password"), server="MetaQuotes-Demo"):
+            print(os.getenv("mt5_login"))
+            print(os.getenv("mt5_password"))
+            print("Failed to login")
+            return
     print("Logged in to MT5")
 
 

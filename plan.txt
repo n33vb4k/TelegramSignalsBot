@@ -1,0 +1,45 @@
+- maybe use react, create a frontent for this which allows user to sign into their telegram, select a chat from there,
+    - (EXT) initialise signal messages by showing examples of previous messages
+    - Using AI
+    - then would init backend app server using flask.
+
+- trading server
+
+- figure out flask api endpoints as I go but shouldn't need many apart from setting the values and starting the client
+
+- class for trade
+    - storing entry, exit, stop loss, take profit, Order
+    - has a method converting a message to a trade
+    - Queue to store instance of these classes and exectute optimally when within the price point before sending it to mt5 class to execute
+        - How can we check when to optimally exectute?
+    - this is simply a class to store trade objects
+
+- class for msgToTrade
+
+- class for telegram 
+    - initialises connection to telegram
+    - handles messages recieved, if they are a relevant trade signal then send to trader
+    - async, this runs on server to continously check for messages
+    - this is simply a class to read messages from tg
+
+- class for mt5 connection
+    - has method for execution of trades
+    - only valid trades/placed trades pass through this class to exectute
+    - this is just simply a class to interact with mt5
+
+trade-copier/
+├─ apps/
+│  ├─ gateway/         # FastAPI
+│  ├─ telethon_worker/
+│  └─ mt5_worker/
+├─ libs/
+│  ├─ models.py
+│  ├─ parsers.py
+│  ├─ risk.py
+│  └─ utils.py
+├─ frontend/           # Next.js
+├─ docker/
+│  ├─ Dockerfile.gateway
+│  ├─ Dockerfile.worker
+│  └─ docker-compose.yml
+└─ tests/
